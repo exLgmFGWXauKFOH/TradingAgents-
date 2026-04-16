@@ -1,10 +1,15 @@
 import os
 from typing import Any, Optional
 
-from langchain_openai import AzureChatOpenAI
-
 from .base_client import BaseLLMClient, normalize_content
 from .validators import validate_model
+
+try:
+    from langchain_openai import AzureChatOpenAI
+    _AZURE_AVAILABLE = True
+except ImportError:
+    AzureChatOpenAI = object  # type: ignore[assignment,misc]
+    _AZURE_AVAILABLE = False
 
 _PASSTHROUGH_KWARGS = (
     "timeout", "max_retries", "api_key", "reasoning_effort",
@@ -34,6 +39,8 @@ class AzureOpenAIClient(BaseLLMClient):
 
     def get_llm(self) -> Any:
         """Return configured AzureChatOpenAI instance."""
+        if not _AZURE_AVAILABLE:
+            raise ImportError("langchain-openai is required for Azure OpenAI. Install it with: pip install langchain-openai")
         self.warn_if_unknown_model()
 
         llm_kwargs = {

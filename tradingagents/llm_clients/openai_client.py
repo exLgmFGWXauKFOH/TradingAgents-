@@ -1,10 +1,15 @@
 import os
 from typing import Any, Optional
 
-from langchain_openai import ChatOpenAI
-
 from .base_client import BaseLLMClient, normalize_content
 from .validators import validate_model
+
+try:
+    from langchain_openai import ChatOpenAI
+    _OPENAI_AVAILABLE = True
+except ImportError:
+    ChatOpenAI = object  # type: ignore[assignment,misc]
+    _OPENAI_AVAILABLE = False
 
 
 class NormalizedChatOpenAI(ChatOpenAI):
@@ -56,6 +61,11 @@ class OpenAIClient(BaseLLMClient):
 
     def get_llm(self) -> Any:
         """Return configured ChatOpenAI instance."""
+        if not _OPENAI_AVAILABLE:
+            raise ImportError(
+                "langchain-openai is required for OpenAI/xAI/Ollama providers. "
+                "Install it with: pip install langchain-openai"
+            )
         self.warn_if_unknown_model()
         llm_kwargs = {"model": self.model}
 

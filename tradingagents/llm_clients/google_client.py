@@ -1,9 +1,14 @@
 from typing import Any, Optional
 
-from langchain_google_genai import ChatGoogleGenerativeAI
-
 from .base_client import BaseLLMClient, normalize_content
 from .validators import validate_model
+
+try:
+    from langchain_google_genai import ChatGoogleGenerativeAI
+    _GOOGLE_AVAILABLE = True
+except ImportError:
+    ChatGoogleGenerativeAI = object  # type: ignore[assignment,misc]
+    _GOOGLE_AVAILABLE = False
 
 
 class NormalizedChatGoogleGenerativeAI(ChatGoogleGenerativeAI):
@@ -25,6 +30,8 @@ class GoogleClient(BaseLLMClient):
 
     def get_llm(self) -> Any:
         """Return configured ChatGoogleGenerativeAI instance."""
+        if not _GOOGLE_AVAILABLE:
+            raise ImportError("langchain-google-genai is required for Google providers. Install it with: pip install langchain-google-genai")
         self.warn_if_unknown_model()
         llm_kwargs = {"model": self.model}
 
