@@ -21,11 +21,6 @@ class NormalizedChatAnthropic(ChatAnthropic):
 
     def _create(self, payload):
         payload.pop("betas", None)
-        import sys
-        print("DEBUG _create payload keys:", list(payload.keys()), file=sys.stderr)
-        print("DEBUG model:", payload.get("model"), file=sys.stderr)
-        print("DEBUG tools:", [t.get("name") for t in payload.get("tools", [])], file=sys.stderr)
-        print("DEBUG extra keys:", {k: v for k, v in payload.items() if k not in ("model", "messages", "tools", "system", "max_tokens", "stop_sequences")}, file=sys.stderr)
         return self._client.messages.create(**payload)
 
     def invoke(self, input, config=None, **kwargs):
