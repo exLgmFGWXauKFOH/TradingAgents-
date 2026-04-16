@@ -19,6 +19,12 @@ class NormalizedChatAnthropic(ChatAnthropic):
     downstream handling.
     """
 
+    def _create(self, payload):
+        # langchain-anthropic >=0.3.10 auto-adds token-efficient-tools beta
+        # which returns 404 for claude-sonnet-4-6 / claude-haiku-4-5.
+        payload.pop("betas", None)
+        return super()._create(payload)
+
     def invoke(self, input, config=None, **kwargs):
         return normalize_content(super().invoke(input, config, **kwargs))
 

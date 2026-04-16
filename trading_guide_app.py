@@ -146,8 +146,8 @@ def run_ta_analysis(ticker: str, trade_date: str, write_progress=None) -> dict:
 
     config = DEFAULT_CONFIG.copy()
     config["llm_provider"] = "anthropic"
-    config["deep_think_llm"] = "claude-3-5-sonnet-20241022"
-    config["quick_think_llm"] = "claude-3-5-sonnet-20241022"
+    config["deep_think_llm"] = "claude-sonnet-4-6"
+    config["quick_think_llm"] = "claude-sonnet-4-6"
     config["max_debate_rounds"] = 1
     config["max_risk_discuss_rounds"] = 1
     config["data_vendors"] = {
@@ -364,7 +364,7 @@ with tab_analyze:
                 import anthropic
                 client = anthropic.Anthropic(api_key=api_key)
                 msg = client.messages.create(
-                    model="claude-3-5-sonnet-20241022",
+                    model="claude-sonnet-4-6",
                     max_tokens=10,
                     messages=[{"role": "user", "content": "Say OK"}],
                 )
