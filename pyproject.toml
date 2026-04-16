@@ -8,5 +8,8 @@ version = "0.2.4"
 requires-python = ">=3.10"
 dependencies = []
 
+[tool.uv]
+package = false
+
 [tool.hatch.build.targets.wheel]
 packages = ["tradingagents", "cli"]
