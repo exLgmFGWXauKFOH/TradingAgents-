@@ -18,6 +18,12 @@ from tradingagents.default_config import DEFAULT_CONFIG
 
 load_dotenv()
 
+# Pull secrets into env vars (Streamlit Cloud stores them in st.secrets)
+if hasattr(st, "secrets"):
+    for _k in ("ANTHROPIC_API_KEY",):
+        if _k in st.secrets and not os.environ.get(_k):
+            os.environ[_k] = st.secrets[_k]
+
 # ── Constants ─────────────────────────────────────────────────────────────────
 
 PORTFOLIO_FILE = os.path.join(
