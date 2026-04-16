@@ -356,6 +356,24 @@ with tab_analyze:
         "a structured trading guide."
     )
 
+    # ── API key status ────────────────────────────────────────────────────────
+    api_key = os.environ.get("ANTHROPIC_API_KEY", "")
+    if api_key:
+        if st.button("🔑 Test API Key", key="btn_test_key"):
+            try:
+                import anthropic
+                client = anthropic.Anthropic(api_key=api_key)
+                msg = client.messages.create(
+                    model="claude-sonnet-4-6",
+                    max_tokens=10,
+                    messages=[{"role": "user", "content": "Say OK"}],
+                )
+                st.success(f"API key works! Response: {msg.content[0].text}")
+            except Exception as e:
+                st.error(f"API key test failed: {e}")
+    else:
+        st.warning("ANTHROPIC_API_KEY not set — add it to Streamlit secrets.")
+
     col_ticker, col_date, col_btn = st.columns([2, 2, 1])
     with col_ticker:
         ticker_input = st.text_input(
