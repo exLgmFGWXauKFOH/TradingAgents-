@@ -1,61 +1,48 @@
-from langchain_core.messages import HumanMessage, RemoveMessage
+"""Agent utilities: pure helpers (eager) + data tool re-exports (lazy).
 
-# Import tools from separate utility files
-from tradingagents.agents.utils.core_stock_tools import (
-    get_stock_data
-)
-from tradingagents.agents.utils.technical_indicators_tools import (
-    get_indicators
-)
-from tradingagents.agents.utils.fundamental_data_tools import (
-    get_fundamentals,
-    get_balance_sheet,
-    get_cashflow,
-    get_income_statement
-)
-from tradingagents.agents.utils.news_data_tools import (
-    get_news,
-    get_insider_transactions,
-    get_global_news
+The three pure utilities are imported eagerly from agent_utils_core so that
+lightweight code paths (e.g. tests) don't pay the cost of loading the full
+data stack (yfinance, pandas, etc.).  Data tools are imported on first access.
+"""
+from tradingagents.agents.utils.agent_utils_core import (
+    get_language_instruction,
+    build_instrument_context,
+    create_msg_delete,
 )
 
+__all__ = [
+    "get_language_instruction",
+    "build_instrument_context",
+    "create_msg_delete",
+    "get_stock_data",
+    "get_indicators",
+    "get_fundamentals",
+    "get_balance_sheet",
+    "get_cashflow",
+    "get_income_statement",
+    "get_news",
+    "get_insider_transactions",
+    "get_global_news",
+]
 
-def get_language_instruction() -> str:
-    """Return a prompt instruction for the configured output language.
-
-    Returns empty string when English (default), so no extra tokens are used.
-    Only applied to user-facing agents (analysts, portfolio manager).
-    Internal debate agents stay in English for reasoning quality.
-    """
-    from tradingagents.dataflows.config import get_config
-    lang = get_config().get("output_language", "English")
-    if lang.strip().lower() == "english":
-        return ""
-    return f" Write your entire response in {lang}."
-
-
-def build_instrument_context(ticker: str) -> str:
-    """Describe the exact instrument so agents preserve exchange-qualified tickers."""
-    return (
-        f"The instrument to analyze is `{ticker}`. "
-        "Use this exact ticker in every tool call, report, and recommendation, "
-        "preserving any exchange suffix (e.g. `.TO`, `.L`, `.HK`, `.T`)."
-    )
-
-def create_msg_delete():
-    def delete_messages(state):
-        """Clear messages and add placeholder for Anthropic compatibility"""
-        messages = state["messages"]
-
-        # Remove all messages
-        removal_operations = [RemoveMessage(id=m.id) for m in messages]
-
-        # Add a minimal placeholder message
-        placeholder = HumanMessage(content="Continue")
-
-        return {"messages": removal_operations + [placeholder]}
-
-    return delete_messages
+_LAZY_TOOLS = {
+    "get_stock_data": "tradingagents.agents.utils.core_stock_tools",
+    "get_indicators": "tradingagents.agents.utils.technical_indicators_tools",
+    "get_fundamentals": "tradingagents.agents.utils.fundamental_data_tools",
+    "get_balance_sheet": "tradingagents.agents.utils.fundamental_data_tools",
+    "get_cashflow": "tradingagents.agents.utils.fundamental_data_tools",
+    "get_income_statement": "tradingagents.agents.utils.fundamental_data_tools",
+    "get_news": "tradingagents.agents.utils.news_data_tools",
+    "get_insider_transactions": "tradingagents.agents.utils.news_data_tools",
+    "get_global_news": "tradingagents.agents.utils.news_data_tools",
+}
 
 
-        
+def __getattr__(name: str):
+    if name in _LAZY_TOOLS:
+        import importlib
+        module = importlib.import_module(_LAZY_TOOLS[name])
+        value = getattr(module, name)
+        globals()[name] = value  # cache for subsequent accesses
+        return value
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

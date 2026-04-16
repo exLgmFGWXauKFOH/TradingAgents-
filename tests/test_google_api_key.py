@@ -1,9 +1,14 @@
 import unittest
 from unittest.mock import patch
 
-from tradingagents.llm_clients.google_client import GoogleClient
+try:
+    from tradingagents.llm_clients.google_client import GoogleClient
+    _GOOGLE_AVAILABLE = True
+except BaseException:
+    _GOOGLE_AVAILABLE = False
 
 
+@unittest.skipUnless(_GOOGLE_AVAILABLE, "langchain-google-genai not importable in this environment")
 class TestGoogleApiKeyStandardization(unittest.TestCase):
     """Verify GoogleClient accepts unified api_key parameter."""
 
