@@ -140,7 +140,7 @@ def run_ta_analysis(ticker: str, trade_date: str, write_progress=None) -> dict:
 
     config = DEFAULT_CONFIG.copy()
     config["llm_provider"] = "anthropic"
-    config["deep_think_llm"] = "claude-opus-4-6"
+    config["deep_think_llm"] = "claude-opus-4-7"
     config["quick_think_llm"] = "claude-sonnet-4-6"
     config["max_debate_rounds"] = 1
     config["max_risk_discuss_rounds"] = 1
