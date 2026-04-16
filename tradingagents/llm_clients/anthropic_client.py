@@ -22,8 +22,9 @@ class NormalizedChatAnthropic(ChatAnthropic):
     def _create(self, payload):
         # langchain-anthropic >=0.3.10 auto-adds token-efficient-tools beta
         # which returns 404 for claude-sonnet-4-6 / claude-haiku-4-5.
+        # Bypass super()._create which may re-add betas — call the SDK directly.
         payload.pop("betas", None)
-        return super()._create(payload)
+        return self._client.messages.create(**payload)
 
     def invoke(self, input, config=None, **kwargs):
         return normalize_content(super().invoke(input, config, **kwargs))
