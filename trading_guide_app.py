@@ -141,7 +141,7 @@ def run_ta_analysis(ticker: str, trade_date: str, write_progress=None) -> dict:
     config = DEFAULT_CONFIG.copy()
     config["llm_provider"] = "anthropic"
     config["deep_think_llm"] = "claude-sonnet-4-6"
-    config["quick_think_llm"] = "claude-haiku-4-5"
+    config["quick_think_llm"] = "claude-sonnet-4-6"
     config["max_debate_rounds"] = 1
     config["max_risk_discuss_rounds"] = 1
     config["data_vendors"] = {
@@ -394,8 +394,10 @@ with tab_analyze:
                     status.update(label="Research complete!", state="complete",
                                   expanded=False)
                 except Exception as exc:
+                    import traceback
                     status.update(label="Analysis failed", state="error")
                     st.error(f"**Error:** {exc}")
+                    st.code(traceback.format_exc(), language="text")
 
     # ── Results ───────────────────────────────────────────────────────────────
 
