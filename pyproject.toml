@@ -3,10 +3,10 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "taguide"
-version = "0.1.0"
+name = "tradingagents"
+version = "0.2.4"
 requires-python = ">=3.10"
 dependencies = []
 
 [tool.hatch.build.targets.wheel]
-packages = ["taguide"]
+packages = ["tradingagents", "cli"]
