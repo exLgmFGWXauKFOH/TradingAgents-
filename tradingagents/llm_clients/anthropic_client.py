@@ -22,8 +22,12 @@ class NormalizedChatAnthropic(ChatAnthropic):
     def _create(self, payload):
         import anthropic, os
         payload.pop("betas", None)
-        # Use a fresh client to avoid any misconfiguration in self._client
-        client = anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
+        # timeout=None bypasses anthropic>=0.96 streaming check for long requests.
+        # Explicit api_key avoids cached_property reading stale env at init time.
+        client = anthropic.Anthropic(
+            api_key=os.environ.get("ANTHROPIC_API_KEY"),
+            timeout=None,
+        )
         return client.messages.create(**payload)
 
     def invoke(self, input, config=None, **kwargs):
