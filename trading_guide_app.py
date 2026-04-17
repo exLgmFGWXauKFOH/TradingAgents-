@@ -359,18 +359,42 @@ with tab_analyze:
     # ── API key status ────────────────────────────────────────────────────────
     api_key = os.environ.get("ANTHROPIC_API_KEY", "")
     if api_key:
-        if st.button("🔑 Test API Key", key="btn_test_key"):
-            try:
-                import anthropic
-                client = anthropic.Anthropic(api_key=api_key)
-                msg = client.messages.create(
-                    model="claude-sonnet-4-6",
-                    max_tokens=10,
-                    messages=[{"role": "user", "content": "Say OK"}],
-                )
-                st.success(f"API key works! Response: {msg.content[0].text}")
-            except Exception as e:
-                st.error(f"API key test failed: {e}")
+        col_t1, col_t2 = st.columns(2)
+        with col_t1:
+            if st.button("🔑 Test API Key", key="btn_test_key"):
+                try:
+                    import anthropic
+                    client = anthropic.Anthropic(api_key=api_key)
+                    msg = client.messages.create(
+                        model="claude-sonnet-4-6",
+                        max_tokens=10,
+                        messages=[{"role": "user", "content": "Say OK"}],
+                    )
+                    st.success(f"API key works! Response: {msg.content[0].text}")
+                except Exception as e:
+                    st.error(f"API key test failed: {e}")
+        with col_t2:
+            if st.button("🔧 Test Tool Calling", key="btn_test_tools"):
+                try:
+                    import anthropic
+                    client = anthropic.Anthropic(api_key=api_key)
+                    msg = client.messages.create(
+                        model="claude-sonnet-4-6",
+                        max_tokens=50,
+                        tools=[{
+                            "name": "get_stock_price",
+                            "description": "Get the current stock price.",
+                            "input_schema": {
+                                "type": "object",
+                                "properties": {"ticker": {"type": "string"}},
+                                "required": ["ticker"],
+                            }
+                        }],
+                        messages=[{"role": "user", "content": "What is the price of AAPL?"}],
+                    )
+                    st.success(f"Tool calling works! Stop reason: {msg.stop_reason}")
+                except Exception as e:
+                    st.error(f"Tool calling test failed: {e}\n\nBody: {getattr(e, 'body', 'N/A')}")
     else:
         st.warning("ANTHROPIC_API_KEY not set — add it to Streamlit secrets.")
 
