@@ -20,15 +20,11 @@ class NormalizedChatAnthropic(ChatAnthropic):
     """
 
     def _create(self, payload):
-        import sys
+        import anthropic, os
         payload.pop("betas", None)
-        try:
-            return self._client.messages.create(**payload)
-        except Exception as e:
-            body = getattr(e, "body", None)
-            status = getattr(e, "status_code", None)
-            print(f"ANTHROPIC ERROR {status}: {body}", file=sys.stderr)
-            raise
+        # Use a fresh client to avoid any misconfiguration in self._client
+        client = anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
+        return client.messages.create(**payload)
 
     def invoke(self, input, config=None, **kwargs):
         return normalize_content(super().invoke(input, config, **kwargs))
