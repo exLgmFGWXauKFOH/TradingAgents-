@@ -24,6 +24,8 @@ if hasattr(st, "secrets"):
         if _k in st.secrets and not os.environ.get(_k):
             os.environ[_k] = st.secrets[_k]
 
+_SECRETS_PORTFOLIO_SEEDED = False  # seed only once per session
+
 # ── Constants ─────────────────────────────────────────────────────────────────
 
 PORTFOLIO_FILE = os.path.join(
@@ -132,6 +134,58 @@ def remove_position(ticker: str) -> None:
     data = load_portfolio()
     data["positions"] = [p for p in data["positions"] if p["ticker"] != ticker]
     save_portfolio(data)
+
+
+def seed_portfolio_from_secrets() -> int:
+    """Pre-populate portfolio from PORTFOLIO secret on first run of the session.
+
+    Secret format (in Streamlit Cloud secrets.toml):
+        PORTFOLIO = '[{"ticker":"AAPL","shares":50,"avg_cost":150.00,"since":"2024-01-15"},...]'
+
+    Returns number of positions added.
+    """
+    global _SECRETS_PORTFOLIO_SEEDED
+    if _SECRETS_PORTFOLIO_SEEDED:
+        return 0
+    _SECRETS_PORTFOLIO_SEEDED = True
+
+    if not (hasattr(st, "secrets") and "PORTFOLIO" in st.secrets):
+        return 0
+
+    try:
+        raw = st.secrets["PORTFOLIO"]
+        holdings = json.loads(raw) if isinstance(raw, str) else list(raw)
+    except Exception:
+        return 0
+
+    data = load_portfolio()
+    existing = {p["ticker"] for p in data["positions"]}
+    added = 0
+    for h in holdings:
+        ticker = str(h.get("ticker", "")).upper().strip()
+        if not ticker or ticker in existing:
+            continue
+        data["positions"].append({
+            "ticker": ticker,
+            "shares": float(h.get("shares", 0)),
+            "buy_price": float(h.get("avg_cost", h.get("buy_price", 0))),
+            "buy_date": str(h.get("since", h.get("buy_date", str(date.today())))),
+            "last_signal": None,
+            "last_analysis_date": None,
+            "last_updated": None,
+            "fundamentals_report": "",
+            "news_report": "",
+            "sentiment_report": "",
+            "invest_judge_decision": "",
+            "final_trade_decision": "",
+            "risk_judge_decision": "",
+        })
+        existing.add(ticker)
+        added += 1
+
+    if added:
+        save_portfolio(data)
+    return added
 
 
 # ── Analysis helper ───────────────────────────────────────────────────────────
@@ -502,6 +556,10 @@ with tab_portfolio:
         "Track your holdings here. Click **Update** on any position to run a fresh "
         "AI analysis and refresh its signal."
     )
+
+    seeded = seed_portfolio_from_secrets()
+    if seeded:
+        st.success(f"Loaded {seeded} position(s) from your PORTFOLIO secret.")
 
     portfolio = load_portfolio()
     positions = portfolio.get("positions", [])
