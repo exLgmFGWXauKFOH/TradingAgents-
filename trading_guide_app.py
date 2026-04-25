@@ -585,30 +585,86 @@ with tab_portfolio:
     # ── Update All button ─────────────────────────────────────────────────────
 
     if positions:
-        update_all_clicked = st.button(
-            "🔄 Update All Positions", key="btn_update_all",
-            help="Run a fresh AI analysis on every position using yesterday's date."
-        )
-        if update_all_clicked:
-            if not os.environ.get("ANTHROPIC_API_KEY"):
-                st.error("ANTHROPIC_API_KEY not found. Add it to your .env file.")
+        col_ua1, col_ua2 = st.columns([2, 1])
+        with col_ua1:
+            stale_days = st.number_input(
+                "Stale after (days)", min_value=1, max_value=30, value=7,
+                help="Positions last analyzed more than this many days ago are considered stale.",
+                key="stale_days_input",
+            )
+        with col_ua2:
+            batch_limit = st.number_input(
+                "Max per run", min_value=1, max_value=len(positions), value=min(5, len(positions)),
+                help="Analyze at most this many positions per click (avoids long timeouts).",
+                key="batch_limit_input",
+            )
+
+        today = date.today()
+        stale = []
+        for pos in positions:
+            lu = pos.get("last_updated", "")
+            if not lu:
+                stale.append(pos)
             else:
-                for pos in positions:
-                    t = pos["ticker"]
-                    with st.status(f"Updating **{t}**...", expanded=True) as s:
-                        try:
-                            results = run_ta_analysis(
-                                t,
-                                str(date.today() - timedelta(days=1)),
-                                write_progress=st.write,
-                            )
-                            save_analysis_to_position(t, results)
-                            s.update(label=f"{t} updated — {results['signal']}",
-                                     state="complete", expanded=False)
-                        except Exception as exc:
-                            s.update(label=f"{t} failed", state="error")
-                            st.error(str(exc))
-                st.rerun()
+                try:
+                    last_dt = date.fromisoformat(lu[:10])
+                    if (today - last_dt).days >= stale_days:
+                        stale.append(pos)
+                except ValueError:
+                    stale.append(pos)
+
+        to_run = stale[:batch_limit]
+
+        if stale:
+            st.caption(
+                f"{len(stale)} position(s) are stale (>{stale_days}d old). "
+                f"This run will update up to {batch_limit}: "
+                f"{', '.join(p['ticker'] for p in to_run)}."
+            )
+        else:
+            st.caption("All positions have been analyzed recently. Nothing to update.")
+
+        col_btn1, col_btn2 = st.columns(2)
+        with col_btn1:
+            update_stale_clicked = st.button(
+                f"🔄 Update Stale ({len(to_run)})", key="btn_update_stale",
+                disabled=not to_run,
+                help="Analyze only positions that haven't been updated recently.",
+            )
+        with col_btn2:
+            force_all_clicked = st.button(
+                "⚡ Force Update All", key="btn_force_all",
+                help=f"Re-analyze ALL {len(positions)} positions (slow — may time out).",
+            )
+
+        run_list = []
+        if update_stale_clicked:
+            run_list = to_run
+        elif force_all_clicked:
+            run_list = positions[:batch_limit]
+
+        if run_list and not os.environ.get("ANTHROPIC_API_KEY"):
+            st.error("ANTHROPIC_API_KEY not found. Add it to your Streamlit secrets.")
+            run_list = []
+
+        for pos in run_list:
+            t = pos["ticker"]
+            with st.status(f"Updating **{t}**...", expanded=True) as s:
+                try:
+                    results = run_ta_analysis(
+                        t,
+                        str(date.today() - timedelta(days=1)),
+                        write_progress=st.write,
+                    )
+                    save_analysis_to_position(t, results)
+                    s.update(label=f"{t} → {results['signal']}",
+                             state="complete", expanded=False)
+                except Exception as exc:
+                    s.update(label=f"{t} failed", state="error")
+                    st.error(str(exc))
+
+        if run_list:
+            st.rerun()
 
     # ── Position cards ────────────────────────────────────────────────────────
 
